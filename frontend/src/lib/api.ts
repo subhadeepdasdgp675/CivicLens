@@ -1,12 +1,24 @@
 // ── Centralized API client ──
 // Handles JWT token management, error handling, and typed requests.
 
-// In production or development, relative path "/api" is automatically routed:
-// - On Vercel: vercel.json rewrites /api/(.*) -> Railway backend
-// - Locally: Vite dev proxy routes /api/(.*) -> localhost:5000
-// Can be overridden explicitly via VITE_API_URL if needed.
-const BACKEND_URL = import.meta.env.VITE_API_URL || "";
-const API_BASE = `${BACKEND_URL}/api`;
+function resolveApiBase(): string {
+    // If running in browser on Vercel (or preview domains), use relative "/api"
+    // which Vercel rewrites to Railway backend with zero CORS issues
+    if (typeof window !== "undefined" && window.location.hostname.includes("vercel.app")) {
+        return "/api";
+    }
+
+    const envUrl = (import.meta.env.VITE_API_URL || "").trim();
+    if (!envUrl) return "/api";
+
+    if (envUrl.startsWith("http://") || envUrl.startsWith("https://")) {
+        return `${envUrl.replace(/\/+$/, "")}/api`;
+    }
+
+    return `https://${envUrl.replace(/\/+$/, "")}/api`;
+}
+
+export const API_BASE = resolveApiBase();
 
 function getToken(): string | null {
     return localStorage.getItem("civiclens_token") || localStorage.getItem("civicconnect_token");

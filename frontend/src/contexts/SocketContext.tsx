@@ -76,10 +76,14 @@ export function SocketProvider({ children }: { children: ReactNode }) {
         if (!token) return;
 
         // In production (Vercel), VITE_API_URL points to the deployed backend.
-        // Falls back to live Railway URL in production build.
-        const backendUrl =
+        const rawBackendUrl =
             import.meta.env.VITE_API_URL ||
             (import.meta.env.PROD ? "https://civiclens-production-3c12.up.railway.app" : undefined);
+
+        let backendUrl = rawBackendUrl;
+        if (backendUrl && !backendUrl.startsWith("http://") && !backendUrl.startsWith("https://")) {
+            backendUrl = `https://${backendUrl}`;
+        }
 
         const newSocket = io(backendUrl, {
             auth: { token },

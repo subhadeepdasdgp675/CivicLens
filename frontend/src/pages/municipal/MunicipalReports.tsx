@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { municipal as municipalApi, type ApiExportReport, type ApiDeptPerf } from "@/lib/api";
+import { municipal as municipalApi, API_BASE, type ApiExportReport, type ApiDeptPerf } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { FileDown, FileText, CheckCircle, Clock, AlertTriangle, Loader2, TrendingUp, BarChart3, PieChartIcon } from "lucide-react";
@@ -30,9 +30,7 @@ const MunicipalReports = () => {
 
   const handleExportCSV = () => {
     const token = localStorage.getItem("civiclens_token") || localStorage.getItem("civicconnect_token");
-    const BACKEND_URL = import.meta.env.VITE_API_URL ?? "";
-    const baseUrl = `${BACKEND_URL}/api`;
-    fetch(`${baseUrl}/municipal/reports/export?format=csv&cityName=${encodeURIComponent(selectedCity)}`, {
+    fetch(`${API_BASE}/municipal/reports/export?format=csv&cityName=${encodeURIComponent(selectedCity)}`, {
       headers: { Authorization: `Bearer ${token || ""}` },
     })
       .then((res) => {
