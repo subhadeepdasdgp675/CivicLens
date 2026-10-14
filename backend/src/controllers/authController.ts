@@ -236,7 +236,10 @@ export async function sendLoginOtp(req: Request, res: Response): Promise<void> {
             data: { otpCode: otp, otpExpiresAt: expiresAt },
         });
 
-        await sendOtpEmail(normalizedEmail, otp, "login");
+        // Fire and forget email delivery in background so HTTP response is instant
+        sendOtpEmail(normalizedEmail, otp, "login").catch((err) => {
+            console.error("[Email] Background OTP delivery error:", err.message);
+        });
 
         res.json({ message: "Login OTP sent to your email." });
     } catch (error) {

@@ -17,6 +17,9 @@ function getTransporter(): nodemailer.Transporter | null {
       port: env.SMTP_PORT,
       secure: env.SMTP_SECURE,
       auth: user && pass ? { user, pass } : undefined,
+      connectionTimeout: 5000,
+      greetingTimeout: 5000,
+      socketTimeout: 5000,
     });
     console.log(`[Email] Custom SMTP transporter ready (${host}:${env.SMTP_PORT})`);
     return transporter;
@@ -27,6 +30,9 @@ function getTransporter(): nodemailer.Transporter | null {
     transporter = nodemailer.createTransport({
       service: "gmail",
       auth: { user, pass },
+      connectionTimeout: 5000,
+      greetingTimeout: 5000,
+      socketTimeout: 5000,
     });
     console.log(`[Email] Gmail SMTP transporter ready for ${user}`);
     return transporter;
