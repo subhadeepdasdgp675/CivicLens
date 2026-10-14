@@ -1,4 +1,6 @@
-# Civic Lens ( live -> )
+# Civic Lens ( live -> http://localhost:8080/
+Frontend - https://civic-lens-jet.vercel.app/
+backend - civiclens-production-3c12.up.railway.app)
 
 **Multi-City Civic Issue Reporting, Real-Time Resolution, and Incident Intelligence Platform**
 
