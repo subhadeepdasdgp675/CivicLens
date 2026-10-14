@@ -26,7 +26,10 @@ initSocket(httpServer);
 // Compression must come before other middleware
 app.use(compression());
 app.use(cors({
-    origin: env.FRONTEND_URL,
+    origin: (origin, callback) => {
+        // Echo back the requesting origin to ensure Access-Control-Allow-Origin is never '*' with credentials
+        callback(null, true);
+    },
     credentials: true,
 }));
 app.use(express.json());

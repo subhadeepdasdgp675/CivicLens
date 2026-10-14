@@ -21,7 +21,7 @@ interface SocketUser {
 export function initSocket(httpServer: HttpServer): Server {
     io = new Server(httpServer, {
         cors: {
-            origin: env.FRONTEND_URL,
+            origin: (origin, callback) => callback(null, true),
             credentials: true,
         },
         // Reduce unnecessary polling — start with websocket, fall back to polling

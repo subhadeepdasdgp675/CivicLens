@@ -1,10 +1,11 @@
 // ── Centralized API client ──
 // Handles JWT token management, error handling, and typed requests.
 
-// VITE_API_URL is set at Vercel build time or defaults to live Railway backend in production
-const BACKEND_URL =
-    import.meta.env.VITE_API_URL ||
-    (import.meta.env.PROD ? "https://civiclens-production-3c12.up.railway.app" : "");
+// In production or development, relative path "/api" is automatically routed:
+// - On Vercel: vercel.json rewrites /api/(.*) -> Railway backend
+// - Locally: Vite dev proxy routes /api/(.*) -> localhost:5000
+// Can be overridden explicitly via VITE_API_URL if needed.
+const BACKEND_URL = import.meta.env.VITE_API_URL || "";
 const API_BASE = `${BACKEND_URL}/api`;
 
 function getToken(): string | null {
