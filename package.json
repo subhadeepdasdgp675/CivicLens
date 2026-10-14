@@ -1,0 +1,14 @@
+{
+  "name": "CivicLens",
+  "version": "1.0.0",
+  "description": "Civic Lens - Civic Crowdsourcing and Issue Resolution Platform",
+  "author": "Subhadeep Das",
+  "private": true,
+  "scripts": {
+    "frontend:dev": "npm --prefix frontend run dev",
+    "frontend:build": "npm --prefix frontend run build",
+    "backend:dev": "npm --prefix backend run dev",
+    "backend:build": "npm --prefix backend run build",
+    "dev": "npm --prefix frontend run dev"
+  }
+}

@@ -1,0 +1,333 @@
+// ──────────────────────────────────────────────
+// Civic Lens — Prisma Schema
+// Multi-city civic issue reporting platform
+// ──────────────────────────────────────────────
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ── Enums ──
+
+enum UserRole {
+  citizen
+  department
+  municipal
+}
+
+enum IssueStatus {
+  Pending
+  Ongoing
+  Resolved
+  Escalated
+}
+
+enum IssueCategory {
+  Garbage
+  Pothole
+  WaterOverflow
+  StreetLight
+  Drainage
+  Footpath
+  Other
+}
+
+enum NotificationType {
+  info
+  success
+  warning
+  error
+}
+
+enum IncidentDecision {
+  SAME_INCIDENT
+  RELATED_INCIDENT
+  NEW_INCIDENT
+  NEEDS_REVIEW
+}
+
+enum ReviewStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  OVERRIDDEN
+}
+
+enum TimelineEventType {
+  REPORT_SUBMITTED
+  AI_ASSESSMENT
+  HUMAN_REVIEW
+  STATUS_CHANGED
+  ESCALATED
+  RESOLVED
+}
+
+// ── Models ──
+
+model User {
+  id           String    @id @default(uuid())
+  name         String
+  email        String    @unique
+  password     String
+  role         UserRole  @default(citizen)
+  avatar       String?
+  otpCode      String? // 6-digit OTP for password reset
+  otpExpiresAt DateTime? // OTP expiry (10 min from issue)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  // Relations
+  city         City?       @relation(fields: [cityId], references: [id])
+  cityId       String?
+  department   Department? @relation(fields: [departmentId], references: [id])
+  departmentId String?
+
+  // Reverse relations
+  issuePosts      IssuePost[]
+  comments        Comment[]
+  notifications   Notification[]
+  upvotes         Upvote[]
+  incidentReviews IncidentAssessmentReview[]
+
+  @@index([email])
+  @@index([cityId])
+  @@index([role])
+}
+
+model City {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  state     String?
+  createdAt DateTime @default(now())
+
+  // Relations
+  departments         Department[]
+  users               User[]
+  issuePosts          IssuePost[]
+  consolidatedTickets ConsolidatedTicket[]
+
+  @@index([name])
+}
+
+model Department {
+  id           String        @id @default(uuid())
+  name         String
+  categoryType IssueCategory
+  createdAt    DateTime      @default(now())
+
+  // Relations
+  city   City   @relation(fields: [cityId], references: [id])
+  cityId String
+
+  // Reverse relations
+  users               User[]
+  consolidatedTickets ConsolidatedTicket[]
+
+  @@unique([cityId, categoryType])
+  @@index([cityId])
+}
+
+model IssuePost {
+  id          String        @id @default(uuid())
+  title       String
+  description String
+  category    IssueCategory
+  location    String
+  lat         Float
+  lng         Float
+  status      IssueStatus   @default(Pending)
+  image       String
+  reporters   Int           @default(1)
+  guestEmail  String? // set for anonymous guest reports
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  // Relations
+  reportedBy           User?               @relation(fields: [reportedById], references: [id])
+  reportedById         String?
+  city                 City                @relation(fields: [cityId], references: [id])
+  cityId               String
+  consolidatedTicket   ConsolidatedTicket? @relation(fields: [consolidatedTicketId], references: [id])
+  consolidatedTicketId String?
+
+  // Reverse relations
+  comments       Comment[]
+  upvotes        Upvote[]
+  assessments    IncidentAssessment[]
+  timelineEvents IncidentTimelineEvent[]
+
+  @@index([cityId])
+  @@index([category])
+  @@index([status])
+  @@index([consolidatedTicketId])
+  @@index([reportedById])
+  @@index([lat, lng])
+  // Composite indexes for common query patterns
+  @@index([cityId, category, status])
+  @@index([cityId, status, createdAt]) // paginated feed sorted by date
+  @@index([cityId, category, createdAt]) // category-filtered paginated feed
+  @@index([reportedById, status]) // profile page status filter
+  @@index([reportedById, createdAt]) // profile page time-sorted list
+}
+
+model ConsolidatedTicket {
+  id                String      @id @default(uuid())
+  status            IssueStatus @default(Pending)
+  escalationFlag    Boolean     @default(false)
+  proofImage        String?
+  resolutionComment String?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  escalatedAt       DateTime?
+  resolvedAt        DateTime?
+
+  // Relations
+  department   Department @relation(fields: [departmentId], references: [id])
+  departmentId String
+  city         City       @relation(fields: [cityId], references: [id])
+  cityId       String
+
+  // Reverse relations
+  issuePosts     IssuePost[]
+  assessments    IncidentAssessment[]
+  timelineEvents IncidentTimelineEvent[]
+
+  @@index([departmentId])
+  @@index([cityId])
+  @@index([status])
+  @@index([escalationFlag])
+  // Composite indexes for the most common query patterns
+  @@index([departmentId, cityId])
+  @@index([departmentId, status])
+  @@index([cityId, status])
+  @@index([departmentId, cityId, status])
+  // For escalation job: status + escalationFlag + createdAt
+  @@index([status, escalationFlag, createdAt])
+  // For avg resolution time queries
+  @@index([departmentId, status, resolvedAt])
+  @@index([cityId, status, resolvedAt])
+}
+
+model Comment {
+  id                 String   @id @default(uuid())
+  content            String
+  image              String?
+  isDepartmentUpdate Boolean  @default(false)
+  createdAt          DateTime @default(now())
+
+  // Relations
+  user        User      @relation(fields: [userId], references: [id])
+  userId      String
+  issuePost   IssuePost @relation(fields: [issuePostId], references: [id], onDelete: Cascade)
+  issuePostId String
+
+  @@index([issuePostId])
+  @@index([issuePostId, createdAt]) // For ordered comment fetching
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  title     String
+  message   String
+  type      NotificationType @default(info)
+  read      Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  // Relations
+  user    User    @relation(fields: [userId], references: [id])
+  userId  String
+  issueId String?
+
+  @@index([userId])
+  @@index([read])
+  @@index([userId, read])
+}
+
+model Upvote {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  // Relations
+  user        User      @relation(fields: [userId], references: [id])
+  userId      String
+  issuePost   IssuePost @relation(fields: [issuePostId], references: [id], onDelete: Cascade)
+  issuePostId String
+
+  @@unique([userId, issuePostId])
+}
+
+// ── CivicLens AI Incident Intelligence Models ──
+
+model IncidentAssessment {
+  id                String           @id @default(uuid())
+  issuePostId       String
+  candidateTicketId String?
+  decision          IncidentDecision
+  confidence        Float // 0.0 - 1.0 confidence score
+  explanation       String           @db.Text
+  evidence          Json // structured signals (distance, spatial, category, description, temporal)
+  uncertainties     String[]         @default([])
+  model             String           @default("gemma-4-it")
+  requiresReview    Boolean          @default(false)
+  reviewStatus      ReviewStatus     @default(PENDING)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  // Relations
+  issuePost       IssuePost                  @relation(fields: [issuePostId], references: [id], onDelete: Cascade)
+  candidateTicket ConsolidatedTicket?        @relation(fields: [candidateTicketId], references: [id])
+  reviews         IncidentAssessmentReview[]
+
+  @@index([issuePostId])
+  @@index([candidateTicketId])
+  @@index([decision])
+  @@index([requiresReview])
+  @@index([reviewStatus])
+  @@index([createdAt])
+}
+
+model IncidentAssessmentReview {
+  id             String       @id @default(uuid())
+  assessmentId   String
+  reviewerId     String
+  action         ReviewStatus // ACCEPTED, REJECTED, OVERRIDDEN
+  targetTicketId String? // Ticket ID assigned if overridden/merged
+  reason         String       @db.Text
+  createdAt      DateTime     @default(now())
+
+  // Relations
+  assessment IncidentAssessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  reviewer   User               @relation(fields: [reviewerId], references: [id])
+
+  @@index([assessmentId])
+  @@index([reviewerId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+model IncidentTimelineEvent {
+  id                   String            @id @default(uuid())
+  issuePostId          String?
+  consolidatedTicketId String?
+  eventType            TimelineEventType
+  title                String
+  description          String            @db.Text
+  source               String // "CITIZEN", "GEMMA_AI", "OFFICER", "SYSTEM"
+  metadata             Json?
+  createdAt            DateTime          @default(now())
+
+  // Relations
+  issuePost          IssuePost?          @relation(fields: [issuePostId], references: [id], onDelete: Cascade)
+  consolidatedTicket ConsolidatedTicket? @relation(fields: [consolidatedTicketId], references: [id], onDelete: Cascade)
+
+  @@index([issuePostId])
+  @@index([consolidatedTicketId])
+  @@index([eventType])
+  @@index([createdAt])
+}

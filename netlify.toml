@@ -1,0 +1,14 @@
+[build]
+  base    = "frontend"        # Netlify runs all commands from here
+  command = "npm run build"
+  publish = "dist"            # Vite outputs to frontend/dist
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# ── SPA fallback — required for React Router ──
+# Without this, any direct URL like /dashboard/issues returns a 404 on Netlify.
+[[redirects]]
+  from   = "/*"
+  to     = "/index.html"
+  status = 200

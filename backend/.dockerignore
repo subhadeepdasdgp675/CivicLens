@@ -1,0 +1,21 @@
+# Dependencies
+node_modules
+
+# Local build output (builder stage creates its own)
+dist
+
+# Secrets — never bake into image
+.env
+.env.*
+
+# Git history not needed in image
+.git
+.gitignore
+
+# Logs
+*.log
+npm-debug.log*
+
+# Dev files
+README.md
+*.md
