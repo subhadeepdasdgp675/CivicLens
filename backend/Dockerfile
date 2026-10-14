@@ -1,32 +1,22 @@
-# ----------- BUILDER STAGE -----------
-FROM node:20 AS builder
+FROM node:20
 
 WORKDIR /app
 
+# Install openssl for Prisma runtime
+RUN apt-get update -y && apt-get install -y openssl ca-certificates && rm -rf /var/lib/apt/lists/*
+
 COPY package*.json ./
-RUN npm ci
+COPY prisma ./prisma/
+
+RUN npm install
 
 COPY . .
 
 RUN npx prisma generate
 RUN npm run build
 
-
-# ----------- PRODUCTION STAGE -----------
-FROM node:20-slim
-
-WORKDIR /app
-
-RUN apt-get update -y && apt-get install -y openssl
-
-COPY package*.json ./
-RUN npm ci --omit=dev
-
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/prisma ./prisma
-
-# 🔥 regenerate Prisma for correct runtime
-RUN npx prisma generate
+ENV PORT=5001
+ENV NODE_ENV=production
 
 EXPOSE 5001
 
