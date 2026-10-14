@@ -1,4 +1,4 @@
-# Civic Lens ( live -> https://civic-connect.live/ )
+# Civic Lens ( live -> )
 
 **Multi-City Civic Issue Reporting, Real-Time Resolution, and Incident Intelligence Platform**
 
