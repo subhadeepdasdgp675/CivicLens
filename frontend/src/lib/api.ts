@@ -1,9 +1,10 @@
 // ── Centralized API client ──
 // Handles JWT token management, error handling, and typed requests.
 
-// VITE_API_URL is set at Vercel build time (e.g. https://api.civicconnect.example.com)
-// Falls back to "" so local dev Vite proxy (/api → localhost:5001) still works.
-const BACKEND_URL = import.meta.env.VITE_API_URL ?? "";
+// VITE_API_URL is set at Vercel build time or defaults to live Railway backend in production
+const BACKEND_URL =
+    import.meta.env.VITE_API_URL ||
+    (import.meta.env.PROD ? "https://civiclens-production-3c12.up.railway.app" : "");
 const API_BASE = `${BACKEND_URL}/api`;
 
 function getToken(): string | null {

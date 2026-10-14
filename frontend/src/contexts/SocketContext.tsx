@@ -76,8 +76,10 @@ export function SocketProvider({ children }: { children: ReactNode }) {
         if (!token) return;
 
         // In production (Vercel), VITE_API_URL points to the deployed backend.
-        // Locally, undefined makes Socket.IO use same-origin (Vite proxy handles it).
-        const backendUrl = import.meta.env.VITE_API_URL || undefined;
+        // Falls back to live Railway URL in production build.
+        const backendUrl =
+            import.meta.env.VITE_API_URL ||
+            (import.meta.env.PROD ? "https://civiclens-production-3c12.up.railway.app" : undefined);
 
         const newSocket = io(backendUrl, {
             auth: { token },
